@@ -36,12 +36,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <style>
         body {
-            background-color: #f0f2f5;
+            background-color: #e9ecef; /* Updated background color for contrast */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -52,32 +54,45 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         .login-container {
             background-color: white;
-            padding: 20px;
+            padding: 30px; /* Increased padding for a more spacious layout */
             border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            width: 300px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* More pronounced shadow */
+            width: 400px; /* Increased width for better usability */
         }
         h2 {
             margin-bottom: 20px;
         }
         input[type="text"], input[type="password"] {
-            width: 100%;
+            width: calc(100% - 20px); /* Full width with padding adjustment */
             padding: 10px;
             margin: 10px 0;
             border: 1px solid #cccccc;
             border-radius: 4px;
         }
         button {
-            width: 100%;
+            width: 100%; /* Full width button */
             padding: 10px;
-            background-color: #4CAF50;
+            background-color: #007bff; /* Button color */
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 16px; /* Increased font size for better readability */
+            transition: background-color 0.3s;
         }
         button:hover {
-            background-color: #45a049;
+            background-color: #0056b3; /* Darker shade on hover */
+        }
+        .footer-link {
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .footer-link a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .footer-link a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -89,8 +104,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <input type="password" name="password" placeholder="Password" required><br>
             <button type="submit">Login</button>
         </form>
-        <p>Don't have an account? <a href="register.php">Register here</a></p>
+        <p class="footer-link">Don't have an account? <a href="register.php">Register here</a></p>
     </div>
 </body>
 </html>
+
 
