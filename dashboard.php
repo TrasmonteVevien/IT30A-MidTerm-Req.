@@ -1,76 +1,3 @@
-<?php
-include 'config.php';
-session_start();
-
-if (!isset($_SESSION['user_id'])) {
-    header("Location: index.php");
-    exit();
-}
-
-// Fetch user information to display the username
-$userStmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
-$userStmt->execute([$_SESSION['user_id']]);
-$user = $userStmt->fetch();
-
-// Fetch borrowed books for the logged-in user
-$stmt = $pdo->prepare("
-    SELECT books.id, books.title, books.author, borrowed_books.borrow_date
-    FROM books
-    JOIN borrowed_books ON books.id = borrowed_books.book_id
-    WHERE borrowed_books.user_id = ?
-");
-$stmt->execute([$_SESSION['user_id']]);
-$borrowedBooks = $stmt->fetchAll();
-
-// Fetch available books (not borrowed)
-$availableBooksStmt = $pdo->prepare("
-    SELECT * FROM books
-    WHERE id NOT IN (SELECT book_id FROM borrowed_books)
-");
-$availableBooksStmt->execute();
-$availableBooks = $availableBooksStmt->fetchAll();
-
-// Fetch temporarily unavailable books (borrowed by others)
-$tempUnavailableStmt = $pdo->prepare("
-    SELECT books.id, books.title, users.username
-    FROM books
-    JOIN borrowed_books ON books.id = borrowed_books.book_id
-    JOIN users ON borrowed_books.user_id = users.id
-    WHERE borrowed_books.user_id != ?
-");
-$tempUnavailableStmt->execute([$_SESSION['user_id']]);
-$tempUnavailableBooks = $tempUnavailableStmt->fetchAll();
-
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['borrow_book_id'])) {
-        // Borrow a book
-        $bookId = $_POST['borrow_book_id'];
-        $userId = $_SESSION['user_id'];
-
-        // Insert into borrowed_books table
-        $insertStmt = $pdo->prepare("INSERT INTO borrowed_books (user_id, book_id, borrow_date) VALUES (?, ?, NOW())");
-        if ($insertStmt->execute([$userId, $bookId])) {
-            echo "<p style='color: green; text-align: center;'>Book borrowed successfully!</p>";
-            header("Refresh:0"); // Refresh the page to update the list
-            exit();
-        } else {
-            echo "<p style='color: red; text-align: center;'>Failed to borrow the book. Please try again.</p>";
-        }
-    } elseif (isset($_POST['delete_borrowed_book_id'])) {
-        // Delete borrowed book
-        $deleteBookId = $_POST['delete_borrowed_book_id'];
-        $deleteStmt = $pdo->prepare("DELETE FROM borrowed_books WHERE user_id = ? AND book_id = ?");
-        if ($deleteStmt->execute([$_SESSION['user_id'], $deleteBookId])) {
-            echo "<p style='color: green; text-align: center;'>Book returned successfully!</p>";
-            header("Refresh:0"); // Refresh the page to update the list
-            exit();
-        } else {
-            echo "<p style='color: red; text-align: center;'>Failed to return the book. Please try again.</p>";
-        }
-    }
-}
-?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -79,13 +6,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Dashboard</title>
     <style>
         body {
-            background-color: #e9ecef;
+            background-color: #f7f9fb;
             display: flex;
             flex-direction: column;
             align-items: center;
             margin: 0;
             font-family: Arial, sans-serif;
             padding: 20px;
+            color: #333;
         }
 
         h2, h3 {
@@ -93,21 +21,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             margin-bottom: 10px;
         }
 
-        .tab {
-            display: none;
-            width: 80%;
-            margin-bottom: 20px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-
         .tab-header {
             cursor: pointer;
-            padding: 10px;
+            padding: 15px;
             background-color: #007bff;
             color: white;
             width: 80%;
             border: none;
-            text-align: left;
+            text-align: center;
+            border-radius: 4px;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .tab-header:hover {
+            background-color: #0056b3;
+        }
+
+        .tab {
+            display: none;
+            width: 80%;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
         }
 
         .active {
@@ -117,12 +55,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         table {
             border-collapse: collapse;
             width: 100%;
-            margin-bottom: 20px;
+            margin-top: 10px;
         }
 
         th, td {
             border: 1px solid #007bff;
-            padding: 10px;
+            padding: 12px;
             text-align: left;
         }
 
@@ -136,10 +74,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         .button-container {
-            margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
-            width: 80%;
+            width: 100%;
+            margin-bottom: 20px;
         }
 
         .button {
@@ -150,19 +88,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
-            transition: background-color 0.3s;
             text-align: center;
             text-decoration: none;
+            transition: background-color 0.3s;
         }
 
         .button:hover {
             background-color: #218838;
-        }
-
-        footer {
-            margin-top: 20px;
-            font-size: 14px;
-            color: #666666;
         }
 
         .back-button {
@@ -172,13 +104,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .back-button:hover {
             background-color: #0056b3;
         }
+
+        footer {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666666;
+        }
     </style>
     <script>
         function showTab(tabId) {
-            const tabs = document.querySelectorAll('.tab');
-            tabs.forEach(tab => {
-                tab.classList.remove('active');
-            });
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
         }
     </script>
