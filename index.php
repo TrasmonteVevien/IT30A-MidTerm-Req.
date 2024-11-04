@@ -1,8 +1,16 @@
 <?php
+session_start();
 include 'config.php'; // Ensure this file contains your database connection
 
-$message = ''; // For storing messages
-$username = ''; // To store the username input value
+// Set default values
+$message = ''; 
+$username = '';
+
+// Check if there was a previously successful login and set the username field
+if (isset($_SESSION['last_username'])) {
+    $username = $_SESSION['last_username'];
+    unset($_SESSION['last_username']); // Clear the stored username after showing it once
+}
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username']; // Capture the entered username
@@ -15,13 +23,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if ($user && password_verify($password, $user['password'])) {
         // Password is correct, start the session
-        session_start();
         $_SESSION['username'] = $username; // Store the username in session
+        $_SESSION['last_username'] = $username; // Store last successful login
         header("Location: dashboard.php"); // Redirect to a protected page
         exit();
-    } else {
-        $message = "Invalid username or password."; // Set message for invalid login
     }
+    // No need to set error message as user experience should remain smooth
+
+    // Clear fields for new login attempt
+    $username = '';
 }
 ?>
 
@@ -69,18 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         button:hover {
             background-color: #45a049;
         }
-        .message {
-            color: red;
-            margin-bottom: 15px;
-        }
     </style>
 </head>
 <body>
     <div class="login-container">
         <h2>Login</h2>
-        <?php if ($message): ?>
-            <p class="message"><?php echo $message; ?></p>
-        <?php endif; ?>
         <form method="post">
             <input type="text" name="username" placeholder="Username" value="<?php echo htmlspecialchars($username); ?>" required><br>
             <input type="password" name="password" placeholder="Password" required><br>
@@ -90,3 +93,4 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
 </body>
 </html>
+

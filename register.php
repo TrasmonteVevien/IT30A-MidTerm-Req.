@@ -2,7 +2,7 @@
 include 'config.php';
 session_start();
 
-// Check if the user is already logged in
+// Redirect to dashboard if already logged in
 if (isset($_SESSION['user_id'])) {
     header("Location: dashboard.php");
     exit();
@@ -10,6 +10,7 @@ if (isset($_SESSION['user_id'])) {
 
 $message = '';
 
+// Registration logic
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'];
     $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
@@ -22,13 +23,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($userExists) {
         $message = "<p style='color: red; text-align: center;'>Username is already taken.</p>";
     } else {
-        // Proceed with insertion if the username is available
+        // Insert new user if the username is available
         $stmt = $pdo->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
         try {
             $stmt->execute([$username, $password]);
-            // Set session user id for the new user
             $_SESSION['user_id'] = $pdo->lastInsertId();
-            header("Location: dashboard.php"); // Redirect to dashboard after successful registration
+            header("Location: dashboard.php"); // Redirect after successful registration
             exit();
         } catch (PDOException $e) {
             $message = "<p style='color: red; text-align: center;'>An error occurred. Please try again later.</p>";
@@ -55,30 +55,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         .register-container {
             background-color: #ffffff;
-            padding: 20px;
+            padding: 30px;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            width: 300px;
+            width: 90%;
+            max-width: 400px;
             text-align: center;
         }
         h2 {
             margin-bottom: 20px;
+            font-size: 24px;
+            color: #333;
         }
         input[type="text"], input[type="password"] {
-            width: 100%;
+            width: calc(100% - 20px);
             padding: 10px;
             margin: 10px 0;
             border: 1px solid #cccccc;
             border-radius: 4px;
+            font-size: 16px;
         }
         button {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             background-color: #4CAF50;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
         }
         button:hover {
             background-color: #45a049;

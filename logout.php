@@ -1,6 +1,10 @@
 <?php
 session_start();
 session_destroy();
+
+// Redirect to login page
+header("Location: index.php");
+exit();
 ?>
 
 <!DOCTYPE html>
@@ -11,7 +15,7 @@ session_destroy();
     <title>Logged Out</title>
     <style>
         body {
-            background-color: #e9ecef; /* Change this to your desired background color */
+            background-color: #e9ecef;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -50,7 +54,7 @@ session_destroy();
     <h1>You have been logged out</h1>
     <div class="button-container">
         <a href="index.php" class="button">Login Again</a>
-        <a href="exit.php" class="button">Exit</a> <!-- Optional exit page -->
+        <a href="exit.php" class="button">Exit</a>
     </div>
 </body>
 </html>
