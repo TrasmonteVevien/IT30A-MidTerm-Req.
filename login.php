@@ -19,9 +19,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['last_username'] = $username;
 
-        // Redirect to the register page instead of dashboard
-        header("Location: register.php");
+        // Redirect to the dashboard page after successful login
+        header("Location: dashboard.php"); // Change this to your intended page
         exit();
+    } else {
+        // Incorrect username/password
+        $error_message = "Invalid username or password.";
     }
 
     // Clear fields for new login attempt
@@ -86,11 +89,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .footer-link a:hover {
             text-decoration: underline;
         }
+        .error-message {
+            color: red;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
     <div class="login-container">
         <h2>Login</h2>
+        <?php if (isset($error_message)) : ?>
+            <div class="error-message"><?= htmlspecialchars($error_message); ?></div>
+        <?php endif; ?>
         <form method="post">
             <input type="text" name="username" placeholder="Username" value="<?php echo htmlspecialchars($username); ?>" required><br>
             <input type="password" name="password" placeholder="Password" required><br>
