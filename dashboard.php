@@ -32,7 +32,7 @@ $availableBooks = $availableBooksStmt->fetchAll();
 
 // Fetch temporarily unavailable books (borrowed by others)
 $tempUnavailableStmt = $pdo->prepare("
-    SELECT books.id, books.title, users.username
+    SELECT books.id, books.title, books.author, users.username
     FROM books
     JOIN borrowed_books ON books.id = borrowed_books.book_id
     JOIN users ON borrowed_books.user_id = users.id
@@ -235,12 +235,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <tr>
                 <th>ID</th>
                 <th>Title</th>
+                <th>Author</th>
                 <th>Borrowed By</th>
             </tr>
             <?php foreach ($tempUnavailableBooks as $book): ?>
                 <tr>
                     <td><?= htmlspecialchars($book['id']) ?></td>
                     <td><?= htmlspecialchars($book['title']) ?></td>
+                    <td><?= htmlspecialchars($book['author']) ?></td>
                     <td><?= htmlspecialchars($book['username']) ?></td>
                 </tr>
             <?php endforeach; ?>
@@ -281,3 +283,4 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </footer>
 </body>
 </html>
+
