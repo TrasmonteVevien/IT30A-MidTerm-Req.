@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Login</title>
     <style>
         body {
-            background-color: #f0f2f5;
+            background-color: #e9ecef; /* Updated background color */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -50,33 +50,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         .login-container {
             background-color: #ffffff;
-            padding: 20px;
+            padding: 30px; /* Increased padding for better spacing */
             border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            width: 300px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* More pronounced shadow */
+            width: 400px; /* Increased width for better usability */
             text-align: center;
         }
         h2 {
             margin-bottom: 20px;
         }
         input[type="text"], input[type="password"] {
-            width: 100%;
+            width: calc(100% - 20px); /* Full width with padding adjustment */
             padding: 10px;
             margin: 10px 0;
             border: 1px solid #cccccc;
             border-radius: 4px;
         }
         button {
-            width: 100%;
+            width: 100%; /* Full width button */
             padding: 10px;
-            background-color: #4CAF50;
+            background-color: #007bff; /* Button color */
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 16px; /* Increased font size for better readability */
+            transition: background-color 0.3s;
         }
         button:hover {
-            background-color: #45a049;
+            background-color: #0056b3; /* Darker shade on hover */
         }
         .footer-link {
             margin-top: 15px;
@@ -112,3 +114,4 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
 </body>
 </html>
+
