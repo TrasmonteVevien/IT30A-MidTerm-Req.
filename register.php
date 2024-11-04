@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             transition: background-color 0.3s;
         }
         button:hover {
-            background-color: #45a049;
+            background-color:  #0056b3;
         }
         .footer-link {
             margin-top: 15px;
