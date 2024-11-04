@@ -1,10 +1,8 @@
 <?php
 session_start();
-session_destroy();
+session_destroy(); // Clear the session
 
-// Redirect to login page
-header("Location: index.php");
-exit();
+// Instead of redirecting immediately, display the logout message
 ?>
 
 <!DOCTYPE html>
@@ -54,7 +52,16 @@ exit();
     <h1>You have been logged out</h1>
     <div class="button-container">
         <a href="index.php" class="button">Login Again</a>
-        <a href="exit.php" class="button">Exit</a>
+        <a href="exit.php" class="button" onclick="window.close(); return false;">Exit</a> <!-- Optional exit functionality -->
     </div>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
