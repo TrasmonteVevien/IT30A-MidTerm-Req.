@@ -1,8 +1,6 @@
 <?php
 session_start();
 session_destroy(); // Clear the session
-
-// Instead of redirecting immediately, display the logout message
 ?>
 
 <!DOCTYPE html>
@@ -13,7 +11,7 @@ session_destroy(); // Clear the session
     <title>Logged Out</title>
     <style>
         body {
-            background-color: #e9ecef;
+            background-color: #f9f9f9;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -24,21 +22,25 @@ session_destroy(); // Clear the session
         }
 
         h1 {
-            color: #333;
+            color: #444;
+            margin-bottom: 15px;
         }
 
         .button-container {
+            display: flex;
+            gap: 10px;
             margin-top: 20px;
         }
 
         .button {
-            padding: 10px 15px;
+            padding: 8px 12px;
             background-color: #007bff;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
+            text-align: center;
             transition: background-color 0.3s;
             text-decoration: none;
         }
@@ -52,11 +54,10 @@ session_destroy(); // Clear the session
     <h1>You have been logged out</h1>
     <div class="button-container">
         <a href="index.php" class="button">Login Again</a>
-        <a href="exit.php" class="button" onclick="window.close(); return false;">Exit</a> <!-- Optional exit functionality -->
+        <a href="exit.php" class="button" onclick="window.close(); return false;">Exit</a>
     </div>
 </body>
 </html>
-
 
 
 
