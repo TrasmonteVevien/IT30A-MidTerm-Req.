@@ -5,7 +5,7 @@ include 'config.php'; // Ensure this file contains your database connection
 // Set default values
 $message = ''; 
 $username = '';
-$max_login_attempts = 5; // Max login attempts
+$max_login_attempts = 2; // Max login attempts set to 2
 $timeout_duration = 300; // Timeout for failed login attempts (5 minutes)
 
 // Check for login attempt count and lockout expiration
@@ -33,18 +33,37 @@ if (isset($_SESSION['last_username'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && $_SESSION['login_attempts'] < $max_login_attempts) {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+    $username = $_POST['username'];  // Institutional ID
+    $password = $_POST['password'];  // Mobile number as password
 
-    // Prepare the SQL statement
+    // Prepare the SQL statement to get the user details based on institutional ID
     $stmt = $pdo->prepare("SELECT password, username FROM users WHERE username = ?");
     $stmt->execute([$username]);
     $user = $stmt->fetch();
 
-    if ($user && password_verify($password, $user['password'])) {
+    // Check if the user exists and verify password
+    if ($user && $password == $user['password']) {
+        // Check for any suspicious activity (IP mismatch or session mismatch)
+        if ($_SESSION['username'] != $username || $_SESSION['last_ip'] != $_SERVER['REMOTE_ADDR']) {
+            $_SESSION['intruder_warning'] = "Suspicious activity detected. Redirecting to security page.";
+            header("Location: intruder_warning.php");
+            exit();
+        }
+
+        // Successful login, request for second layer verification (PIN or OTP)
         $_SESSION['username'] = $username;
         $_SESSION['last_username'] = $username;
         $_SESSION['login_attempts'] = 0; // Reset login attempts on success
+        $_SESSION['last_ip'] = $_SERVER['REMOTE_ADDR']; // Store IP address for session tracking
+
+        // Check if user has already verified via PIN/OTP
+        if (!isset($_SESSION['verified'])) {
+            // Ask for PIN or OTP verification here
+            header("Location: otp_verification.php");
+            exit();
+        }
+
+        // Proceed to dashboard if PIN/OTP is verified
         header("Location: dashboard.php");
         exit();
     } else {
@@ -53,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $_SESSION['login_attempts'] < $max_l
         if ($_SESSION['login_attempts'] == 1) {
             $_SESSION['first_failed_attempt'] = time();
         }
-        $message = "Invalid username or password.";
+        $message = "Invalid institutional ID or mobile number.";
     }
 }
 
@@ -129,8 +148,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $_SESSION['login_attempts'] < $max_l
     <div class="login-container">
         <h2>Login</h2>
         <form method="post">
-            <input type="text" name="username" placeholder="Username" value="<?php echo htmlspecialchars($username); ?>" required><br>
-            <input type="password" name="password" placeholder="Password" required><br>
+            <input type="text" name="username" placeholder="Institutional ID (e.g., 20221185)" value="<?php echo htmlspecialchars($username); ?>" required><br>
+            <input type="password" name="password" placeholder="Mobile Number (e.g., 09511959950)" required><br>
             <button type="submit">Login</button>
         </form>
         <p class="footer-link">Don't have an account? <a href="register.php">Register here</a></p>
