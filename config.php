@@ -1,5 +1,4 @@
 <?php
-
 define('DB_SERVER', 'localhost');
 define('DB_NAME', 'ias');
 define('DB_USERNAME', 'root');

@@ -43,27 +43,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $_SESSION['login_attempts'] < $max_l
 
     // Check if the user exists and verify password
     if ($user && $password == $user['password']) {
-        // Check for any suspicious activity (IP mismatch or session mismatch)
-        if ($_SESSION['username'] != $username || $_SESSION['last_ip'] != $_SERVER['REMOTE_ADDR']) {
-            $_SESSION['intruder_warning'] = "Suspicious activity detected. Redirecting to security page.";
-            header("Location: intruder_warning.php");
-            exit();
-        }
-
-        // Successful login, request for second layer verification (PIN or OTP)
         $_SESSION['username'] = $username;
         $_SESSION['last_username'] = $username;
         $_SESSION['login_attempts'] = 0; // Reset login attempts on success
-        $_SESSION['last_ip'] = $_SERVER['REMOTE_ADDR']; // Store IP address for session tracking
 
-        // Check if user has already verified via PIN/OTP
-        if (!isset($_SESSION['verified'])) {
-            // Ask for PIN or OTP verification here
-            header("Location: otp_verification.php");
-            exit();
-        }
-
-        // Proceed to dashboard if PIN/OTP is verified
         header("Location: dashboard.php");
         exit();
     } else {

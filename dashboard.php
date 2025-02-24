@@ -279,7 +279,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
 
     <footer>
-        &copy; 2024 Borrowing Books Management System. All rights reserved.
+        &copy;2025 NBSC Borrowing Books Management System. All rights reserved.
     </footer>
 </body>
 </html>
