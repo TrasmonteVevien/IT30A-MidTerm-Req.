@@ -7,65 +7,58 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-// Fetch user information to display the username
-$userStmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
+// Fetch user information
+$userStmt = $pdo->prepare("SELECT email, department FROM users WHERE id = ?");
 $userStmt->execute([$_SESSION['user_id']]);
 $user = $userStmt->fetch();
 
 // Fetch borrowed books for the logged-in user
-$stmt = $pdo->prepare("
-    SELECT books.id, books.title, books.author, borrowed_books.borrow_date
+$borrowedStmt = $pdo->prepare("
+    SELECT books.id, books.title, books.author, borrowed_books.borrow_date 
     FROM books
     JOIN borrowed_books ON books.id = borrowed_books.book_id
-    WHERE borrowed_books.user_id = ?
+    WHERE borrowed_books.user_id = ? AND borrowed_books.return_date IS NULL
 ");
-$stmt->execute([$_SESSION['user_id']]);
-$borrowedBooks = $stmt->fetchAll();
+$borrowedStmt->execute([$_SESSION['user_id']]);
+$borrowedBooks = $borrowedStmt->fetchAll();
 
-// Fetch available books (not borrowed)
+// Fetch available books (not currently borrowed)
 $availableBooksStmt = $pdo->prepare("
     SELECT * FROM books
-    WHERE id NOT IN (SELECT book_id FROM borrowed_books)
+    WHERE id NOT IN (SELECT book_id FROM borrowed_books WHERE return_date IS NULL)
 ");
 $availableBooksStmt->execute();
 $availableBooks = $availableBooksStmt->fetchAll();
 
-// Fetch temporarily unavailable books (borrowed by others)
+// Fetch books borrowed by others
 $tempUnavailableStmt = $pdo->prepare("
-    SELECT books.id, books.title, books.author, users.username
+    SELECT books.id, books.title, books.author, users.email AS borrowed_by
     FROM books
     JOIN borrowed_books ON books.id = borrowed_books.book_id
     JOIN users ON borrowed_books.user_id = users.id
-    WHERE borrowed_books.user_id != ?
+    WHERE borrowed_books.return_date IS NULL AND borrowed_books.user_id != ?
 ");
 $tempUnavailableStmt->execute([$_SESSION['user_id']]);
 $tempUnavailableBooks = $tempUnavailableStmt->fetchAll();
 
+// Handle borrowing and returning books
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['borrow_book_id'])) {
-        // Borrow a book
         $bookId = $_POST['borrow_book_id'];
         $userId = $_SESSION['user_id'];
 
-        // Insert into borrowed_books table
+        // Borrow a book
         $insertStmt = $pdo->prepare("INSERT INTO borrowed_books (user_id, book_id, borrow_date) VALUES (?, ?, NOW())");
         if ($insertStmt->execute([$userId, $bookId])) {
-            echo "<p style='color: green; text-align: center;'>Book borrowed successfully!</p>";
-            header("Refresh:0"); // Refresh the page to update the list
+            header("Location: dashboard.php"); // Refresh page
             exit();
-        } else {
-            echo "<p style='color: red; text-align: center;'>Failed to borrow the book. Please try again.</p>";
         }
-    } elseif (isset($_POST['delete_borrowed_book_id'])) {
-        // Delete borrowed book
-        $deleteBookId = $_POST['delete_borrowed_book_id'];
-        $deleteStmt = $pdo->prepare("DELETE FROM borrowed_books WHERE user_id = ? AND book_id = ?");
-        if ($deleteStmt->execute([$_SESSION['user_id'], $deleteBookId])) {
-            echo "<p style='color: green; text-align: center;'>Book returned successfully!</p>";
-            header("Refresh:0"); // Refresh the page to update the list
+    } elseif (isset($_POST['return_book_id'])) {
+        $returnBookId = $_POST['return_book_id'];
+        $returnStmt = $pdo->prepare("UPDATE borrowed_books SET return_date = NOW() WHERE user_id = ? AND book_id = ? AND return_date IS NULL");
+        if ($returnStmt->execute([$_SESSION['user_id'], $returnBookId])) {
+            header("Location: dashboard.php"); // Refresh page
             exit();
-        } else {
-            echo "<p style='color: red; text-align: center;'>Failed to return the book. Please try again.</p>";
         }
     }
 }
@@ -80,207 +73,110 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <style>
         body {
             background-color: #f9f9f9;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 0;
+            text-align: center;
             font-family: Arial, sans-serif;
             padding: 20px;
         }
-
-        h2, h3 {
-            color: #333;
-            margin-bottom: 10px;
-        }
-
-        .tab {
-            display: none;
-            width: 90%;
-            max-width: 800px;
-            margin-bottom: 20px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 6px;
-        }
-
-        .tab-header {
-            cursor: pointer;
-            padding: 10px;
-            background-color: #007bff;
-            color: white;
-            width: 90%;
-            max-width: 800px;
-            border: none;
-            text-align: center;
-            font-size: 16px;
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-
-        .active {
-            display: block;
-        }
-
+        h2, h3 { color: #333; }
         table {
+            width: 80%;
+            margin: 20px auto;
             border-collapse: collapse;
-            width: 100%;
-            margin-bottom: 20px;
         }
-
         th, td {
+            padding: 10px;
             border: 1px solid #007bff;
-            padding: 8px;
-            text-align: left;
         }
-
-        th {
-            background-color: #007bff;
-            color: white;
-        }
-
-        tr:hover {
-            background-color: #f1f1f1;
-        }
-
-        .button-container {
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            max-width: 800px;
-        }
-
+        th { background-color: #007bff; color: white; }
         .button {
             padding: 8px 12px;
-            background-color: #28a745;
             color: white;
+            background-color: #28a745;
             border: none;
-            border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.3s;
-            text-align: center;
-            text-decoration: none;
         }
-
-        .button:hover {
-            background-color: #218838;
-        }
-
-        footer {
-            margin-top: 20px;
-            font-size: 14px;
-            color: #666666;
-        }
-
-        .back-button {
-            background-color: #007bff;
+        .button:hover { background-color: #218838; }
+        .logout-button {
+            background-color: #dc3545;
             padding: 8px 12px;
-            font-size: 14px;
+            text-decoration: none;
+            color: white;
+            margin-bottom: 20px;
         }
-
-        .back-button:hover {
-            background-color: #0056b3;
-        }
+        .logout-button:hover { background-color: #c82333; }
     </style>
-    <script>
-        function showTab(tabId) {
-            const tabs = document.querySelectorAll('.tab');
-            tabs.forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.getElementById(tabId).classList.add('active');
-        }
-    </script>
 </head>
 <body>
-    <h2>Dashboard - <?= htmlspecialchars($user['username']) ?>'s Profile</h2>
 
-    <div class="button-container">
-        <a href="logout.php" class="button">Logout</a>
-    </div>
+    <h2>Welcome, <?= htmlspecialchars($user['email']) ?></h2>
+    <p>Department: <?= htmlspecialchars($user['department']) ?></p>
+    <a href="logout.php" class="logout-button">Logout</a>
 
-    <button class="tab-header" onclick="showTab('userProfileTab')">User Profile</button>
-    <div id="userProfileTab" class="tab active">
-        <h3>User Profile</h3>
-        <p><strong>Login Time:</strong> <?= date("Y-m-d H:i:s") ?></p>
-        <h4>Borrowed Books</h4>
-        <table>
+    <h3>Borrowed Books</h3>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Borrow Date</th>
+            <th>Action</th>
+        </tr>
+        <?php foreach ($borrowedBooks as $book): ?>
             <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Author</th>
-                <th>Borrow Date</th>
-                <th>Action</th>
+                <td><?= $book['id'] ?></td>
+                <td><?= htmlspecialchars($book['title']) ?></td>
+                <td><?= htmlspecialchars($book['author']) ?></td>
+                <td><?= $book['borrow_date'] ?></td>
+                <td>
+                    <form method="post">
+                        <input type="hidden" name="return_book_id" value="<?= $book['id'] ?>">
+                        <button type="submit" class="button">Return</button>
+                    </form>
+                </td>
             </tr>
-            <?php foreach ($borrowedBooks as $book): ?>
-                <tr>
-                    <td><?= htmlspecialchars($book['id']) ?></td>
-                    <td><?= htmlspecialchars($book['title']) ?></td>
-                    <td><?= htmlspecialchars($book['author']) ?></td>
-                    <td><?= htmlspecialchars($book['borrow_date']) ?></td>
-                    <td>
-                        <form method="post" style="display:inline;">
-                            <input type="hidden" name="delete_borrowed_book_id" value="<?= $book['id'] ?>">
-                            <button type="submit" class="button">Return</button>
-                        </form>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-        </table>
+        <?php endforeach; ?>
+    </table>
 
-        <h4>Temporarily Unavailable Books</h4>
-        <table>
+    <h3>Available Books</h3>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Action</th>
+        </tr>
+        <?php foreach ($availableBooks as $book): ?>
             <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Author</th>
-                <th>Borrowed By</th>
+                <td><?= $book['id'] ?></td>
+                <td><?= htmlspecialchars($book['title']) ?></td>
+                <td><?= htmlspecialchars($book['author']) ?></td>
+                <td>
+                    <form method="post">
+                        <input type="hidden" name="borrow_book_id" value="<?= $book['id'] ?>">
+                        <button type="submit" class="button">Borrow</button>
+                    </form>
+                </td>
             </tr>
-            <?php foreach ($tempUnavailableBooks as $book): ?>
-                <tr>
-                    <td><?= htmlspecialchars($book['id']) ?></td>
-                    <td><?= htmlspecialchars($book['title']) ?></td>
-                    <td><?= htmlspecialchars($book['author']) ?></td>
-                    <td><?= htmlspecialchars($book['username']) ?></td>
-                </tr>
-            <?php endforeach; ?>
-        </table>
-    </div>
+        <?php endforeach; ?>
+    </table>
 
-    <button class="tab-header" onclick="showTab('availableBooksTab')">Available Books</button>
-    <div id="availableBooksTab" class="tab">
-        <h3>Available Books</h3>
-        <div class="button-container">
-            <button class="button back-button" onclick="showTab('userProfileTab')">Back to Profile</button>
-        </div>
-        <table>
+    <h3>Borrowed by Others</h3>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Borrowed By</th>
+        </tr>
+        <?php foreach ($tempUnavailableBooks as $book): ?>
             <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Author</th>
-                <th>Action</th>
+                <td><?= $book['id'] ?></td>
+                <td><?= htmlspecialchars($book['title']) ?></td>
+                <td><?= htmlspecialchars($book['author']) ?></td>
+                <td><?= htmlspecialchars($book['borrowed_by']) ?></td>
             </tr>
-            <?php foreach ($availableBooks as $book): ?>
-                <tr>
-                    <td><?= htmlspecialchars($book['id']) ?></td>
-                    <td><?= htmlspecialchars($book['title']) ?></td>
-                    <td><?= htmlspecialchars($book['author']) ?></td>
-                    <td>
-                        <form method="post" style="display:inline;">
-                            <input type="hidden" name="borrow_book_id" value="<?= $book['id'] ?>">
-                            <button type="submit" class="button">Borrow</button>
-                        </form>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-        </table>
-    </div>
+        <?php endforeach; ?>
+    </table>
 
-    <footer>
-        &copy;2025 NBSC Borrowing Books Management System. All rights reserved.
-    </footer>
 </body>
 </html>
-

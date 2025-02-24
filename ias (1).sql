@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 24, 2025 at 12:54 AM
+-- Generation Time: Feb 24, 2025 at 02:18 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -24,24 +24,12 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
--- Table structure for table `activity_logs`
---
-
-CREATE TABLE `activity_logs` (
-  `id` int(11) NOT NULL,
-  `action` varchar(255) NOT NULL,
-  `timestamp` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `admins`
 --
 
 CREATE TABLE `admins` (
   `id` int(11) NOT NULL,
-  `username` varchar(50) NOT NULL,
+  `email` varchar(100) NOT NULL,
   `password` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -53,10 +41,9 @@ CREATE TABLE `admins` (
 
 CREATE TABLE `books` (
   `id` int(11) NOT NULL,
-  `title` varchar(100) NOT NULL,
-  `author` varchar(100) DEFAULT NULL,
-  `category` varchar(50) NOT NULL,
-  `available` tinyint(1) DEFAULT 1
+  `title` varchar(255) NOT NULL,
+  `author` varchar(100) NOT NULL,
+  `category` varchar(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -69,7 +56,21 @@ CREATE TABLE `borrowed_books` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `book_id` int(11) NOT NULL,
-  `borrow_date` date DEFAULT NULL
+  `borrow_date` datetime NOT NULL DEFAULT current_timestamp(),
+  `return_date` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `logins`
+--
+
+CREATE TABLE `logins` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `login_time` timestamp NOT NULL DEFAULT current_timestamp(),
+  `ip_address` varchar(45) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -90,17 +91,11 @@ CREATE TABLE `users` (
 --
 
 --
--- Indexes for table `activity_logs`
---
-ALTER TABLE `activity_logs`
-  ADD PRIMARY KEY (`id`);
-
---
 -- Indexes for table `admins`
 --
 ALTER TABLE `admins`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `username` (`username`);
+  ADD UNIQUE KEY `email` (`email`);
 
 --
 -- Indexes for table `books`
@@ -117,21 +112,21 @@ ALTER TABLE `borrowed_books`
   ADD KEY `book_id` (`book_id`);
 
 --
+-- Indexes for table `logins`
+--
+ALTER TABLE `logins`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
+
+--
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `email` (`email`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- AUTO_INCREMENT for dumped tables
 --
-
---
--- AUTO_INCREMENT for table `activity_logs`
---
-ALTER TABLE `activity_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `admins`
@@ -152,6 +147,12 @@ ALTER TABLE `borrowed_books`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `logins`
+--
+ALTER TABLE `logins`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
@@ -165,8 +166,14 @@ ALTER TABLE `users`
 -- Constraints for table `borrowed_books`
 --
 ALTER TABLE `borrowed_books`
-  ADD CONSTRAINT `borrowed_books_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
-  ADD CONSTRAINT `borrowed_books_ibfk_2` FOREIGN KEY (`book_id`) REFERENCES `books` (`id`);
+  ADD CONSTRAINT `borrowed_books_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `borrowed_books_ibfk_2` FOREIGN KEY (`book_id`) REFERENCES `books` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `logins`
+--
+ALTER TABLE `logins`
+  ADD CONSTRAINT `logins_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
