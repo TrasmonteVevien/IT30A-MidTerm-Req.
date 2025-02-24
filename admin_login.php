@@ -2,18 +2,27 @@
 include 'config.php';
 session_start();
 
+// If admin is already logged in, redirect to dashboard
+if (isset($_SESSION['admin_id'])) {
+    header("Location: admin_dashboard.php");
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'];
     $password = $_POST['password'];
 
+    // Fetch admin credentials
     $stmt = $pdo->prepare("SELECT * FROM admin WHERE username = ?");
     $stmt->execute([$username]);
     $admin = $stmt->fetch();
 
     if ($admin && password_verify($password, $admin['password'])) {
+        // Set session for the admin
         $_SESSION['admin_id'] = $admin['id'];
         $_SESSION['admin_username'] = $admin['username'];
 
+        // Redirect to admin dashboard
         header("Location: admin_dashboard.php");
         exit();
     } else {
@@ -29,8 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login</title>
     <style>
-
-body {
+        body {
             background-color: #e9ecef;
             display: flex;
             align-items: center;
@@ -71,32 +79,17 @@ body {
         button:hover {
             background-color: #0056b3;
         }
-        .footer-link {
-            margin-top: 15px;
-            font-size: 14px;
-        }
-        .footer-link a {
-            color: #007bff;
-            text-decoration: none;
-        }
-        .footer-link a:hover {
-            text-decoration: underline;
-        }
         .error-message {
             color: red;
-            margin: 10px 0;
-        }
-        .success-message {
-            color: green;
             margin: 10px 0;
         }
     </style>
 </head>
 <body>
-    <div class="login-box">
+    <div class="login-container">
         <h2>Admin Login</h2>
-        <?php if (isset($error_message)): ?>
-            <p class="error"><?= htmlspecialchars($error_message); ?></p>
+        <?php if (isset($error_message)) : ?>
+            <div class="error-message"><?= htmlspecialchars($error_message); ?></div>
         <?php endif; ?>
         <form method="post">
             <input type="text" name="username" placeholder="Username" required><br>
