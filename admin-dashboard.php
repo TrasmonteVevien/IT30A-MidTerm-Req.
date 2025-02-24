@@ -4,7 +4,7 @@ session_start();
 
 // Check if admin is logged in
 if (!isset($_SESSION['admin_id'])) {
-    header("Location: login.php");
+    header("Location: admin_login.php");
     exit();
 }
 
@@ -18,7 +18,7 @@ $failed_attempts = $stmt->fetchAll();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Failed Logins</title>
+    <title>Admin Dashboard</title>
     <style>
         table {
             width: 100%;
@@ -40,7 +40,10 @@ $failed_attempts = $stmt->fetchAll();
     </style>
 </head>
 <body>
-    <h2>Failed Login Attempts</h2>
+    <h2>Admin Dashboard</h2>
+    <a href="admin_logout.php">Logout</a>
+    
+    <h3>Failed Login Attempts</h3>
     <table>
         <tr>
             <th>Username</th>
@@ -59,31 +62,3 @@ $failed_attempts = $stmt->fetchAll();
     </table>
 </body>
 </html>
-🔹 Allow Admin to Remove Suspicious Attempts
-Create remove_attempt.php to let the admin delete suspicious login attempts.
-
-php
-Copy
-Edit
-<?php
-include 'config.php';
-session_start();
-
-// Check if admin is logged in
-if (!isset($_SESSION['admin_id'])) {
-    header("Location: login.php");
-    exit();
-}
-
-if (isset($_GET['id'])) {
-    $id = intval($_GET['id']);
-    
-    // Delete the failed attempt
-    $stmt = $pdo->prepare("DELETE FROM login_attempts WHERE id = ?");
-    $stmt->execute([$id]);
-    
-    // Redirect back
-    header("Location: admin_dashboard.php");
-    exit();
-}
-?>

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 24, 2025 at 10:43 AM
+-- Generation Time: Feb 24, 2025 at 10:55 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -20,6 +20,18 @@ SET time_zone = "+00:00";
 --
 -- Database: `trasmonte`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin`
+--
+
+CREATE TABLE `admin` (
+  `id` int(11) NOT NULL,
+  `username` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -102,6 +114,16 @@ CREATE TABLE `login_attempts` (
   `status` varchar(20) DEFAULT 'failed'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `login_attempts`
+--
+
+INSERT INTO `login_attempts` (`id`, `username`, `ip_address`, `attempt_time`, `status`) VALUES
+(1, 'althia', '::1', '2025-02-24 17:45:10', 'failed'),
+(2, 'roren', '::1', '2025-02-24 17:48:13', 'failed'),
+(3, 'roren', '::1', '2025-02-24 17:48:19', 'failed'),
+(4, 'roren', '::1', '2025-02-24 17:48:23', 'failed');
+
 -- --------------------------------------------------------
 
 --
@@ -137,11 +159,19 @@ INSERT INTO `users` (`id`, `username`, `password`) VALUES
 (22, '20211185', '$2y$10$86IvdS2ZwUtR9Ls22znNduy4yn.4a0ik6pfUnL/ThR/eew1C7cdRq'),
 (23, '64363453', '$2y$10$Oyq2fFiHm.BAkvuJ3EupROrmYQjL7NMs1dijLiWoAOPYcbnwq4URu'),
 (24, '55553453', '$2y$10$/uZiy1O8NFFU90Qg/IqOX.Op5.LIDa5pq4CX8P3RcDtAPuJ.Go9rW'),
-(25, 'althia', '$2y$10$S/BJtuNa.qjU77dAiCrvjueMqalRrGDla2EDGFH64ahIxrH0zWx3y');
+(25, 'althia', '$2y$10$S/BJtuNa.qjU77dAiCrvjueMqalRrGDla2EDGFH64ahIxrH0zWx3y'),
+(26, 'roren', '$2y$10$Ne9nMr6H.qtQl/7E9NappeTQmbsTHGmpZYY274DxJTPf1Icpk17IW');
 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `admin`
+--
+ALTER TABLE `admin`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `username` (`username`);
 
 --
 -- Indexes for table `books`
@@ -175,6 +205,12 @@ ALTER TABLE `users`
 --
 
 --
+-- AUTO_INCREMENT for table `admin`
+--
+ALTER TABLE `admin`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `books`
 --
 ALTER TABLE `books`
@@ -190,13 +226,13 @@ ALTER TABLE `borrowed_books`
 -- AUTO_INCREMENT for table `login_attempts`
 --
 ALTER TABLE `login_attempts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- Constraints for dumped tables
