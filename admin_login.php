@@ -29,24 +29,66 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login</title>
     <style>
-        body {
+
+body {
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
             font-family: Arial, sans-serif;
+        }
+        .login-container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            width: 400px;
             text-align: center;
         }
-        .login-box {
-            width: 300px;
-            padding: 20px;
-            margin: 100px auto;
-            background: #f4f4f4;
-            border-radius: 8px;
+        h2 {
+            margin-bottom: 20px;
         }
-        input, button {
-            width: 100%;
-            margin: 10px 0;
+        input[type="text"], input[type="password"] {
+            width: calc(100% - 20px);
             padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
         }
-        .error {
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .footer-link {
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .footer-link a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .footer-link a:hover {
+            text-decoration: underline;
+        }
+        .error-message {
             color: red;
+            margin: 10px 0;
+        }
+        .success-message {
+            color: green;
+            margin: 10px 0;
         }
     </style>
 </head>
