@@ -1,6 +1,6 @@
 <?php
 define('DB_SERVER', 'localhost');
-define('DB_NAME', 'ias');
+define('DB_NAME', 'it36a-ais');
 define('DB_USERNAME', 'root');
 define('DB_PASSWORD', '');
 
