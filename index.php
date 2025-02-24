@@ -1,195 +1,109 @@
 <?php
 session_start();
+include 'config.php'; // Ensure this file contains your database connection
 
-if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
-    header("location: dashboard.php");
-    exit;
+// Set default values
+$message = ''; 
+$username = '';
+
+// Check if there was a previously successful login and set the username field
+if (isset($_SESSION['last_username'])) {
+    $username = $_SESSION['last_username'];
+    unset($_SESSION['last_username']); // Clear the stored username after showing it once
 }
 
-require_once "config.php";
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $username = $_POST['username']; // Capture the entered username
+    $password = $_POST['password'];
 
-$username = $password = "";
-$username_err = $password_err = $login_err = "";
+    // Prepare the SQL statement
+    $stmt = $pdo->prepare("SELECT password FROM users WHERE username = ?");
+    $stmt->execute([$username]);
+    $user = $stmt->fetch();
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    if (empty(trim($_POST["username"]))) {
-        $username_err = "Please enter username.";
-    } else {
-        $username = trim($_POST["username"]);
+    if ($user && password_verify($password, $user['password'])) {
+        // Password is correct, start the session
+        $_SESSION['username'] = $username; // Store the username in session
+        $_SESSION['last_username'] = $username; // Store last successful login
+        header("Location: dashboard.php"); // Redirect to a protected page
+        exit();
     }
+    // No need to set error message as user experience should remain smooth
 
-    if (empty(trim($_POST["password"]))) {
-        $password_err = "Please enter your password.";
-    } else {
-        $password = trim($_POST["password"]);
-    }
-
-    if (empty($username_err) && empty($password_err)) {
-        $sql = "SELECT id, username, password FROM users WHERE username = :username";
-
-        if ($stmt = $pdo->prepare($sql)) {
-            $stmt->bindParam(":username", $param_username, PDO::PARAM_STR);
-            $param_username = trim($_POST["username"]);
-
-            if ($stmt->execute()) {
-                if ($stmt->rowCount() == 1) {
-                    if ($row = $stmt->fetch()) {
-                        $id = $row["id"];
-                        $username = $row["username"];
-                        $hashed_password = $row["password"];
-                        if (password_verify($password, $hashed_password)) {
-                            session_start();
-                            $_SESSION["loggedin"] = true;
-                            $_SESSION["id"] = $id;
-                            $_SESSION["username"] = $username;
-
-                            resetAttempts($pdo, $username);
-
-                            header("location: dashboard.php");
-                            exit;
-                        } else {
-                            $login_err = "Invalid username or password.";
-                            logIntruder($pdo, $username);
-                        }
-                    }
-                } else {
-                    $login_err = "Invalid username or password.";
-                    logIntruder($pdo, $username);
-                }
-            } else {
-                echo "Oops! Something went wrong. Please try again later.";
-            }
-            unset($stmt);
-        }
-    }
-    unset($pdo);
-}
-
-function logIntruder($pdo, $username) {
-    
-    $sql = "SELECT attempt_count FROM intruders WHERE username = :username";
-    if ($stmt = $pdo->prepare($sql)) {
-        $stmt->bindParam(":username", $username, PDO::PARAM_STR);
-        $stmt->execute();
-        $result = $stmt->fetch();
-        unset($stmt);
-
-        if ($result) {
-        
-            $new_count = $result["attempt_count"] + 1;
-            $sql = "UPDATE intruders SET attempt_count = :new_count WHERE username = :username";
-            if ($stmt = $pdo->prepare($sql)) {
-                $stmt->bindParam(":new_count", $new_count, PDO::PARAM_INT);
-                $stmt->bindParam(":username", $username, PDO::PARAM_STR);
-                $stmt->execute();
-                unset($stmt);
-            }
-        } else {
-           
-            $sql = "INSERT INTO intruders (username, attempt_count) VALUES (:username, 1)";
-            if ($stmt = $pdo->prepare($sql)) {
-                $stmt->bindParam(":username", $username, PDO::PARAM_STR);
-                $stmt->execute();
-                unset($stmt);
-            }
-        }
-    }
-}
-
-function resetAttempts($pdo, $username) {
-    $sql = "DELETE FROM intruders WHERE username = :username";
-    if ($stmt = $pdo->prepare($sql)) {
-        $stmt->bindParam(":username", $username, PDO::PARAM_STR);
-        $stmt->execute();
-        unset($stmt);
-    }
+    // Clear fields for new login attempt
+    $username = '';
 }
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
-       body {
-            font: 14px sans-serif;
-            background-color: #000; /* Black background */
-            color: #dcdcdc; /* Light gray text */
+        body {
+            background-color: #e9ecef; /* Updated background color for contrast */
             display: flex;
-            justify-content: center;
             align-items: center;
-            height: 100vh; /* Full viewport height for centering */
+            justify-content: center;
+            height: 100vh;
             margin: 0;
+            font-family: Arial, sans-serif;
+            text-align: center;
         }
-        .wrapper {
-            width: 100%;
-            max-width: 400px; /* Set a max-width for the form */
-            padding: 30px; /* Increased padding for better spacing */
-            background-color: #1a1a1a; /* Dark gray background for the form */
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); /* Soft shadow for depth */
+        .login-container {
+            background-color: white;
+            padding: 30px; /* Increased padding for a more spacious layout */
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* More pronounced shadow */
+            width: 400px; /* Increased width for better usability */
         }
-        .form-control {
-            background-color: #121212; /* Darker input field */
-            color: #dcdcdc; /* Light text */
-            border: 1px solid #8e24aa; /* Purple border */
+        h2 {
+            margin-bottom: 20px;
         }
-        .form-control:focus {
-            background-color: #121212; /* Dark background on focus */
-            border-color: #ba68c8; /* Bright purple border on focus */
-            box-shadow: 0 0 5px rgba(186, 104, 200, 0.5); /* Purple glow effect on focus */
+        input[type="text"], input[type="password"] {
+            width: calc(100% - 20px); /* Full width with padding adjustment */
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
         }
-        .btn-primary {
-            background-color: #6a1b9a; /* Dark purple button */
+        button {
+            width: 100%; /* Full width button */
+            padding: 10px;
+            background-color: #007bff; /* Button color */
+            color: white;
             border: none;
-            transition: background-color 0.3s; /* Smooth transition */
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
         }
-        .btn-primary:hover {
-            background-color: #8e24aa; /* Brighter purple on hover */
+        button:hover {
+            background-color: #0056b3; /* Darker shade on hover */
         }
-        .alert-danger {
-            background-color: #e57373; /* Softer red for error messages */
-            color: #fff; /* White text */
-            border-radius: 5px; /* Slight rounding of corners */
+        .footer-link {
+            margin-top: 15px;
+            font-size: 14px;
         }
-        a {
-            color: #ce93d8; /* Light purple link */
+        .footer-link a {
+            color: #007bff;
+            text-decoration: none;
         }
-        a:hover {
-            color: #ba68c8; /* Brighter purple on hover */
+        .footer-link a:hover {
+            text-decoration: underline;
         }
-    </style> 
+    </style>
 </head>
 <body>
-    <div class="wrapper">
+    <div class="login-container">
         <h2>Login</h2>
-        <p>Please fill in your credentials to login.</p>
-
-        <?php 
-        if (!empty($login_err)) {
-            echo '<div class="alert alert-danger">' . $login_err . '</div>';
-        }        
-        ?>
-
-        <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
-            <div class="form-group">
-                <label>Username</label>
-                <input type="text" name="username" class="form-control <?php echo (!empty($username_err)) ? 'is-invalid' : ''; ?>" value="<?php echo $username; ?>">
-                <span class="invalid-feedback"><?php echo $username_err; ?></span>
-            </div>    
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" name="password" class="form-control <?php echo (!empty($password_err)) ? 'is-invalid' : ''; ?>">
-                <span class="invalid-feedback"><?php echo $password_err; ?></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" class="btn btn-primary" value="Login">
-            </div>
-            <p>Don't have an account? <a href="register.php" style="color: #ffccbc;">Sign up now</a>.</p>
+        <form method="post">
+            <input type="text" name="username" placeholder="Username" value="<?php echo htmlspecialchars($username); ?>" required><br>
+            <input type="password" name="password" placeholder="Password" required><br>
+            <button type="submit">Login</button>
         </form>
+        <p class="footer-link">Don't have an account? <a href="register.php">Register here</a></p>
     </div>
 </body>
 </html>

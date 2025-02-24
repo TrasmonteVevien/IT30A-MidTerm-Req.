@@ -1,208 +1,285 @@
 <?php
+include 'config.php';
 session_start();
 
-// Check if the user is logged in, redirect to login page if not
-if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
-    header("location: login.php");
-    exit;
+if (!isset($_SESSION['user_id'])) {
+    header("Location: index.php");
+    exit();
 }
 
-require_once "config.php"; // Include your database connection file
+// Fetch user information to display the username
+$userStmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
+$userStmt->execute([$_SESSION['user_id']]);
+$user = $userStmt->fetch();
 
-// Fetch food products from the database
-$sql = "SELECT * FROM food_products";
-$stmt = $pdo->prepare($sql);
-$stmt->execute();
-$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Fetch borrowed books for the logged-in user
+$stmt = $pdo->prepare("
+    SELECT books.id, books.title, books.author, borrowed_books.borrow_date
+    FROM books
+    JOIN borrowed_books ON books.id = borrowed_books.book_id
+    WHERE borrowed_books.user_id = ?
+");
+$stmt->execute([$_SESSION['user_id']]);
+$borrowedBooks = $stmt->fetchAll();
 
-// Handle the sale of food products
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['product_id'])) {
-    $product_id = $_POST['product_id'];
-    $quantity = $_POST['quantity'];
+// Fetch available books (not borrowed)
+$availableBooksStmt = $pdo->prepare("
+    SELECT * FROM books
+    WHERE id NOT IN (SELECT book_id FROM borrowed_books)
+");
+$availableBooksStmt->execute();
+$availableBooks = $availableBooksStmt->fetchAll();
 
-    // Insert sale into sales table
-    $insert_sql = "INSERT INTO sales (food_product_id, quantity) VALUES (:product_id, :quantity)";
-    $insert_stmt = $pdo->prepare($insert_sql);
-    $insert_stmt->bindParam(':product_id', $product_id);
-    $insert_stmt->bindParam(':quantity', $quantity);
-    $insert_stmt->execute();
+// Fetch temporarily unavailable books (borrowed by others)
+$tempUnavailableStmt = $pdo->prepare("
+    SELECT books.id, books.title, books.author, users.username
+    FROM books
+    JOIN borrowed_books ON books.id = borrowed_books.book_id
+    JOIN users ON borrowed_books.user_id = users.id
+    WHERE borrowed_books.user_id != ?
+");
+$tempUnavailableStmt->execute([$_SESSION['user_id']]);
+$tempUnavailableBooks = $tempUnavailableStmt->fetchAll();
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if (isset($_POST['borrow_book_id'])) {
+        // Borrow a book
+        $bookId = $_POST['borrow_book_id'];
+        $userId = $_SESSION['user_id'];
+
+        // Insert into borrowed_books table
+        $insertStmt = $pdo->prepare("INSERT INTO borrowed_books (user_id, book_id, borrow_date) VALUES (?, ?, NOW())");
+        if ($insertStmt->execute([$userId, $bookId])) {
+            echo "<p style='color: green; text-align: center;'>Book borrowed successfully!</p>";
+            header("Refresh:0"); // Refresh the page to update the list
+            exit();
+        } else {
+            echo "<p style='color: red; text-align: center;'>Failed to borrow the book. Please try again.</p>";
+        }
+    } elseif (isset($_POST['delete_borrowed_book_id'])) {
+        // Delete borrowed book
+        $deleteBookId = $_POST['delete_borrowed_book_id'];
+        $deleteStmt = $pdo->prepare("DELETE FROM borrowed_books WHERE user_id = ? AND book_id = ?");
+        if ($deleteStmt->execute([$_SESSION['user_id'], $deleteBookId])) {
+            echo "<p style='color: green; text-align: center;'>Book returned successfully!</p>";
+            header("Refresh:0"); // Refresh the page to update the list
+            exit();
+        } else {
+            echo "<p style='color: red; text-align: center;'>Failed to return the book. Please try again.</p>";
+        }
+    }
 }
-
-// Handle adding a new food product
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['new_product'])) {
-    $name = $_POST['name'];
-    $description = $_POST['description'];
-    $price = $_POST['price'];
-    $image_url = $_POST['image_url'];
-
-    // Insert new product into the database
-    $insert_product_sql = "INSERT INTO food_products (name, description, price, image_url) VALUES (:name, :description, :price, :image_url)";
-    $insert_product_stmt = $pdo->prepare($insert_product_sql);
-    $insert_product_stmt->bindParam(':name', $name);
-    $insert_product_stmt->bindParam(':description', $description);
-    $insert_product_stmt->bindParam(':price', $price);
-    $insert_product_stmt->bindParam(':image_url', $image_url);
-    $insert_product_stmt->execute();
-
-    // Redirect to the same page to avoid resubmission
-    header("Location: dashboard.php");
-    exit;
-}
-
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
-    body {
-        background-color: #121212;
-        color: #e0e0e0;
-        font-family: Arial, sans-serif;
-    }
-    .navbar {
-        background-color: #1f1b24;
-    }
-    .navbar-brand, .navbar-nav .nav-link {
-        color: #bb86fc;
-        transition: color 0.3s, background-color 0.3s;
-    }
-    .navbar-nav .nav-link:hover {
-        background-color: #3c2f41;
-        color: #e0e0e0;
-        border-radius: 5px;
-    }
-    .container {
-        margin-top: 20px;
-    }
-    .product-card {
-        margin: 15px;
-        border: 1px solid #444;
-        border-radius: 8px;
-        padding: 10px;
-        background-color: #1f1b24;
-        color: #e0e0e0;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        transition: box-shadow 0.3s, transform 0.3s;
-    }
-    .product-card:hover {
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-        transform: translateY(-5px);
-    }
-    .product-img {
-        width: 100%;
-        height: 200px;
-        object-fit: cover;
-        border-radius: 5px;
-        margin-bottom: 10px;
-    }
-    .product-card h5 {
-        color: #bb86fc;
-    }
-    .product-card p {
-        color: #b3b3b3;
-    }
-    .btn-success {
-        background-color: #3700b3;
-        border-color: #3700b3;
-        transition: background-color 0.3s, color 0.3s;
-    }
-    .btn-success:hover {
-        background-color: #6200ea;
-        color: white;
-    }
-    .add-product-card {
-        border: 1px solid #444;
-        border-radius: 8px;
-        padding: 10px;
-        background-color: #1f1b24;
-        margin: 15px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        transition: box-shadow 0.3s, transform 0.3s;
-    }
-    .add-product-card:hover {
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-        transform: translateY(-5px);
-    }
-    .btn-primary {
-        background-color: #bb86fc;
-        border-color: #bb86fc;
-        transition: background-color 0.3s, color 0.3s;
-    }
-    .btn-primary:hover {
-        background-color: #6200ea;
-        color: #e0e0e0;
-    }
+        body {
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        h2, h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .tab {
+            display: none;
+            width: 90%;
+            max-width: 800px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 6px;
+        }
+
+        .tab-header {
+            cursor: pointer;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            width: 90%;
+            max-width: 800px;
+            border: none;
+            text-align: center;
+            font-size: 16px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .active {
+            display: block;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            border: 1px solid #007bff;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .button-container {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .button {
+            padding: 8px 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .button:hover {
+            background-color: #218838;
+        }
+
+        footer {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666666;
+        }
+
+        .back-button {
+            background-color: #007bff;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        .back-button:hover {
+            background-color: #0056b3;
+        }
     </style>
+    <script>
+        function showTab(tabId) {
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+        }
+    </script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg">
-        <a class="navbar-brand" href="#">Food Sales</a>
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav ml-auto">
-                <li class="nav-item">
-                <a class="nav-link" href="warning.php">Notificatuion</a>
-                    <a class="nav-link" href="join.php">Join Data</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="logout.php">Logout</a>
-                </li>
-            </ul>
-        </div>
-    </nav>
+    <h2>Dashboard - <?= htmlspecialchars($user['username']) ?>'s Profile</h2>
 
-    <div class="container">
-        <h2>Food Products</h2>
-        <div class="row">
-            <?php foreach ($products as $product): ?>
-                <div class="col-md-4">
-                    <div class="product-card text-center">
-                        <img src="<?php echo htmlspecialchars($product['image_url']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>" class="product-img">
-                        <h5><?php echo htmlspecialchars($product['name']); ?></h5>
-                        <p><?php echo htmlspecialchars($product['description']); ?></p>
-                        <p>Price: $<?php echo number_format($product['price'], 2); ?></p>
-                        <form method="post" action="">
-                            <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
-                            <input type="number" name="quantity" min="1" value="1" required>
-                            <button type="submit" class="btn btn-success">Sell</button>
-                        </form>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-
-        <h2>Add New Food Product</h2>
-        <div class="add-product-card">
-            <form method="post" action="">
-                <div class="form-group">
-                    <label for="name">Product Name</label>
-                    <input type="text" name="name" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="description">Description</label>
-                    <textarea name="description" class="form-control" required></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="price">Price</label>
-                    <input type="number" name="price" class="form-control" step="0.01" required>
-                </div>
-                <div class="form-group">
-                    <label for="image_url">Image URL</label>
-                    <input type="text" name="image_url" class="form-control" required>
-                </div>
-                <input type="hidden" name="new_product" value="1">
-                <button type="submit" class="btn btn-primary">Add Product</button>
-            </form>
-        </div>
+    <div class="button-container">
+        <a href="logout.php" class="button">Logout</a>
     </div>
+
+    <button class="tab-header" onclick="showTab('userProfileTab')">User Profile</button>
+    <div id="userProfileTab" class="tab active">
+        <h3>User Profile</h3>
+        <p><strong>Login Time:</strong> <?= date("Y-m-d H:i:s") ?></p>
+        <h4>Borrowed Books</h4>
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Borrow Date</th>
+                <th>Action</th>
+            </tr>
+            <?php foreach ($borrowedBooks as $book): ?>
+                <tr>
+                    <td><?= htmlspecialchars($book['id']) ?></td>
+                    <td><?= htmlspecialchars($book['title']) ?></td>
+                    <td><?= htmlspecialchars($book['author']) ?></td>
+                    <td><?= htmlspecialchars($book['borrow_date']) ?></td>
+                    <td>
+                        <form method="post" style="display:inline;">
+                            <input type="hidden" name="delete_borrowed_book_id" value="<?= $book['id'] ?>">
+                            <button type="submit" class="button">Return</button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+
+        <h4>Temporarily Unavailable Books</h4>
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Borrowed By</th>
+            </tr>
+            <?php foreach ($tempUnavailableBooks as $book): ?>
+                <tr>
+                    <td><?= htmlspecialchars($book['id']) ?></td>
+                    <td><?= htmlspecialchars($book['title']) ?></td>
+                    <td><?= htmlspecialchars($book['author']) ?></td>
+                    <td><?= htmlspecialchars($book['username']) ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+    </div>
+
+    <button class="tab-header" onclick="showTab('availableBooksTab')">Available Books</button>
+    <div id="availableBooksTab" class="tab">
+        <h3>Available Books</h3>
+        <div class="button-container">
+            <button class="button back-button" onclick="showTab('userProfileTab')">Back to Profile</button>
+        </div>
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Action</th>
+            </tr>
+            <?php foreach ($availableBooks as $book): ?>
+                <tr>
+                    <td><?= htmlspecialchars($book['id']) ?></td>
+                    <td><?= htmlspecialchars($book['title']) ?></td>
+                    <td><?= htmlspecialchars($book['author']) ?></td>
+                    <td>
+                        <form method="post" style="display:inline;">
+                            <input type="hidden" name="borrow_book_id" value="<?= $book['id'] ?>">
+                            <button type="submit" class="button">Borrow</button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+    </div>
+
+    <footer>
+        &copy; 2024 Borrowing Books Management System. All rights reserved.
+    </footer>
 </body>
 </html>
-
-<?php
-// Close the database connection
-unset($stmt);
-unset($pdo);
-?>
