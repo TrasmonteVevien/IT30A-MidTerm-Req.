@@ -2,12 +2,28 @@
 include 'config.php';
 session_start();
 
-// Set default values for username and clear password input
+// Set default values
 $username = isset($_SESSION['last_username']) ? $_SESSION['last_username'] : '';
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+// Initialize failed login attempts and session timeout
+if (!isset($_SESSION['failed_attempts'])) {
+    $_SESSION['failed_attempts'] = 0;
+}
+if (!isset($_SESSION['last_login_time'])) {
+    $_SESSION['last_login_time'] = time();
+}
+
+$max_attempts = 3; // Maximum login attempts before lockout
+$lockout_time = 60 * 5; // 5 minutes lockout period
+
+// Check if user is locked out
+if (isset($_SESSION['lockout_time']) && time() < $_SESSION['lockout_time']) {
+    $remaining_time = ($_SESSION['lockout_time'] - time()) / 60;
+    $error_message = "Too many failed attempts. Try again in " . ceil($remaining_time) . " minutes.";
+} elseif ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'];
     $password = $_POST['password'];
+    $ip_address = $_SERVER['REMOTE_ADDR'];
 
     // Prepare the SQL statement to check user credentials
     $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
@@ -15,19 +31,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password'])) {
+        // Reset failed attempts
+        $_SESSION['failed_attempts'] = 0;
+        unset($_SESSION['lockout_time']);
+
         // Set session user id and store last successful username
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['last_username'] = $username;
+        $_SESSION['last_login_time'] = time();
+        $_SESSION['success_message'] = "Login successful!";
 
-        // Redirect to the dashboard page after successful login
-        header("Location: dashboard.php"); // Change this to your intended page
+        // Redirect to dashboard
+        header("Location: dashboard.php");
         exit();
     } else {
-        // Incorrect username/password
-        $error_message = "Invalid username or password.";
+        // Log failed attempt
+        $stmt = $pdo->prepare("INSERT INTO login_attempts (username, ip_address, attempt_time) VALUES (?, ?, NOW())");
+        $stmt->execute([$username, $ip_address]);
+
+        // Incorrect credentials - increment failed attempts
+        $_SESSION['failed_attempts']++;
+
+        if ($_SESSION['failed_attempts'] >= $max_attempts) {
+            $_SESSION['lockout_time'] = time() + $lockout_time;
+            $error_message = "Too many failed attempts. Try again in 5 minutes.";
+        } else {
+            $error_message = "Invalid username or password. Attempt " . $_SESSION['failed_attempts'] . " of $max_attempts.";
+        }
     }
 
-    // Clear fields for new login attempt
+    // Clear username input after failed login
     $username = '';
 }
 ?>
@@ -40,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Login</title>
     <style>
         body {
-            background-color: #e9ecef; /* Updated background color */
+            background-color: #e9ecef;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -50,35 +83,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         .login-container {
             background-color: #ffffff;
-            padding: 30px; /* Increased padding for better spacing */
+            padding: 30px;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* More pronounced shadow */
-            width: 400px; /* Increased width for better usability */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            width: 400px;
             text-align: center;
         }
         h2 {
             margin-bottom: 20px;
         }
         input[type="text"], input[type="password"] {
-            width: calc(100% - 20px); /* Full width with padding adjustment */
+            width: calc(100% - 20px);
             padding: 10px;
             margin: 10px 0;
             border: 1px solid #cccccc;
             border-radius: 4px;
         }
         button {
-            width: 100%; /* Full width button */
+            width: 100%;
             padding: 10px;
-            background-color: #007bff; /* Button color */
+            background-color: #007bff;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 16px; /* Increased font size for better readability */
+            font-size: 16px;
             transition: background-color 0.3s;
         }
         button:hover {
-            background-color: #0056b3; /* Darker shade on hover */
+            background-color: #0056b3;
         }
         .footer-link {
             margin-top: 15px;
@@ -95,6 +128,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             color: red;
             margin: 10px 0;
         }
+        .success-message {
+            color: green;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -102,6 +139,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <h2>Login</h2>
         <?php if (isset($error_message)) : ?>
             <div class="error-message"><?= htmlspecialchars($error_message); ?></div>
+        <?php endif; ?>
+        <?php if (isset($_SESSION['success_message'])) : ?>
+            <div class="success-message"><?= htmlspecialchars($_SESSION['success_message']); ?></div>
+            <?php unset($_SESSION['success_message']); ?>
         <?php endif; ?>
         <form method="post">
             <input type="text" name="username" placeholder="Username" value="<?php echo htmlspecialchars($username); ?>" required><br>
