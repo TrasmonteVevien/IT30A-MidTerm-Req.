@@ -279,7 +279,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
 
     <footer>
-        &copy; 2024 Borrowing Books Management System. All rights reserved.
+        &copy; 
+        
+             Developer, Vevien Althia A.Trasmonte
+        2025 Borrowing Books Management System. All rights reserved.
     </footer>
 </body>
 </html>
