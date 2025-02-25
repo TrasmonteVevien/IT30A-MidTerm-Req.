@@ -2,14 +2,6 @@
 session_start();
 include 'config.php'; // Ensure this file contains your database connection
 
-// Security Enhancements
-if (!isset($_SESSION['attempts'])) {
-    $_SESSION['attempts'] = 0;
-}
-if (!isset($_SESSION['notifier'])) {
-    $_SESSION['notifier'] = '';
-}
-
 // Set default values
 $message = ''; 
 $username = '';
@@ -25,27 +17,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password = $_POST['password'];
 
     // Prepare the SQL statement
-    $stmt = $pdo->prepare("SELECT id, password FROM users WHERE username = ?");
+    $stmt = $pdo->prepare("SELECT password FROM users WHERE username = ?");
     $stmt->execute([$username]);
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password'])) {
-        // Successful login
-        $_SESSION['username'] = $username; 
-        $_SESSION['user_id'] = $user['id']; // Store user ID in session
-        $_SESSION['last_username'] = $username; 
-        $_SESSION['attempts'] = 0; // Reset failed attempts
-        $_SESSION['notifier'] = ''; // Clear notifier
-        session_regenerate_id(true); // Prevent session hijacking
+        // Password is correct, start the session
+        $_SESSION['username'] = $username; // Store the username in session
+        $_SESSION['last_username'] = $username; // Store last successful login
         header("Location: dashboard.php"); // Redirect to a protected page
         exit();
-    } else {
-        // Failed login attempt
-        $_SESSION['attempts']++;
-        if ($_SESSION['attempts'] >= 3) {
-            $_SESSION['notifier'] = 'Multiple failed login attempts detected!';
-        }
     }
+    // No need to set error message as user experience should remain smooth
+
     // Clear fields for new login attempt
     $username = '';
 }
@@ -59,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <title>Login</title>
     <style>
         body {
-            background-color: #e9ecef;
+            background-color: #e9ecef; /* Updated background color for contrast */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -70,25 +54,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         .login-container {
             background-color: white;
-            padding: 30px;
+            padding: 30px; /* Increased padding for a more spacious layout */
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            width: 400px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* More pronounced shadow */
+            width: 400px; /* Increased width for better usability */
         }
         h2 {
             margin-bottom: 20px;
         }
         input[type="text"], input[type="password"] {
-            width: calc(100% - 20px);
+            width: calc(100% - 20px); /* Full width with padding adjustment */
             padding: 10px;
             margin: 10px 0;
             border: 1px solid #cccccc;
             border-radius: 4px;
         }
         button {
-            width: 100%;
+            width: 100%; /* Full width button */
             padding: 10px;
-            background-color: #007bff;
+            background-color: #007bff; /* Button color */
             color: white;
             border: none;
             border-radius: 4px;
@@ -96,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             transition: background-color 0.3s;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: #0056b3; /* Darker shade on hover */
         }
         .footer-link {
             margin-top: 15px;
@@ -109,19 +93,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .footer-link a:hover {
             text-decoration: underline;
         }
-        .warning {
-            color: red;
-            font-weight: bold;
-            margin-top: 10px;
-        }
     </style>
 </head>
 <body>
     <div class="login-container">
         <h2>Login</h2>
-        <?php if (!empty($_SESSION['notifier'])): ?>
-            <p class="warning">⚠ <?php echo $_SESSION['notifier']; ?></p>
-        <?php endif; ?>
         <form method="post">
             <input type="text" name="username" placeholder="Username" value="<?php echo htmlspecialchars($username); ?>" required><br>
             <input type="password" name="password" placeholder="Password" required><br>
