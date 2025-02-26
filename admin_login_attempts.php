@@ -1,3 +1,7 @@
+
+php
+Copy
+Edit
 <?php
 include 'config.php';
 session_start();
@@ -50,17 +54,29 @@ $attempts = $stmt->fetchAll();
             padding: 10px;
             text-align: left;
         }
-        th 
-        { background-color: #007bff; color: white; }
+        th { background-color: #007bff; color: white; }
         .success { color: green; }
         .failed { color: red; }
         .action-btn { padding: 5px 10px; border: none; cursor: pointer; }
         .grant { background-color: green; color: white; }
         .remove { background-color: red; color: white; }
-    </style>
+        .back-btn {
+            margin-top: 20px;
+            padding: 10px 15px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 16px;
+            display: inline-block;
+            border-radius: 4px;
+        }
+        .back-btn:hover { background-color : #007bff;
+        }
 </head>
 <body>
-    <h2>Login Attempt Management</h2>
+    <h2>Login Attempts</h2>
 
     <?php if (isset($_SESSION['success_message'])): ?>
         <p class="success"><?= htmlspecialchars($_SESSION['success_message']); ?></p>
@@ -102,5 +118,8 @@ $attempts = $stmt->fetchAll();
         </tr>
         <?php endforeach; ?>
     </table>
+
+    <!-- Back Button -->
+    <a href="admin_dashboard.php" class="back-btn">← Back </a>
 </body>
 </html>
