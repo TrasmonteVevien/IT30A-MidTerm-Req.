@@ -13,7 +13,7 @@ if (!isset($_SESSION['last_login_time'])) {
     $_SESSION['last_login_time'] = time();
 }
 
-$max_attempts = 3; // Maximum login attempts before lockout
+$max_attempts = 2; // Maximum login attempts before lockout
 $lockout_time = 60 * 5; // 5 minutes lockout period
 
 // Check if user is locked out
