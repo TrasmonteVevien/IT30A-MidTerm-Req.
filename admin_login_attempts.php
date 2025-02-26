@@ -34,10 +34,24 @@ $attempts = $stmt->fetchAll();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Login Attempts</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #007bff; color: white; }
+       body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 20px;
+       }
+       table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #007bff;
+            padding: 10px;
+            text-align: left;
+        }
+        th 
+        { background-color: #007bff; color: white; }
         .success { color: green; }
         .failed { color: red; }
         .action-btn { padding: 5px 10px; border: none; cursor: pointer; }
