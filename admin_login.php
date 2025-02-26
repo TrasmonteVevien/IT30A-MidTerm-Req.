@@ -2,23 +2,27 @@
 include 'config.php';
 session_start();
 
-// If admin is already logged in, redirect to dashboard
-if (isset($_SESSION['admin_id'])) {
+// Redirect if already logged in
+if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true) {
     header("Location: admin_dashboard.php");
     exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+    $username = trim($_POST['username']);
+    $password = trim($_POST['password']);
 
-    // Fetch admin credentials
+    // Fetch admin credentials from database
     $stmt = $pdo->prepare("SELECT * FROM admin WHERE username = ?");
     $stmt->execute([$username]);
     $admin = $stmt->fetch();
 
     if ($admin && password_verify($password, $admin['password'])) {
-        // Set session for the admin
+        // Regenerate session ID to prevent session fixation
+        session_regenerate_id(true);
+        
+        // Set session variables
+        $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_id'] = $admin['id'];
         $_SESSION['admin_username'] = $admin['username'];
 
