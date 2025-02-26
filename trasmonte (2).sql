@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 24, 2025 at 10:55 AM
+-- Generation Time: Feb 26, 2025 at 11:41 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -32,6 +32,13 @@ CREATE TABLE `admin` (
   `username` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `admin`
+--
+
+INSERT INTO `admin` (`id`, `username`, `password`) VALUES
+(1, 'zeke', '$2y$10$hMmYNWzo3PRbcQiFaZoOqO7/f3jtM8SSLWazpuo3teOQBIoPXZm7S');
 
 -- --------------------------------------------------------
 
@@ -108,21 +115,11 @@ INSERT INTO `borrowed_books` (`id`, `user_id`, `book_id`, `borrow_date`) VALUES
 
 CREATE TABLE `login_attempts` (
   `id` int(11) NOT NULL,
-  `username` varchar(255) DEFAULT NULL,
-  `ip_address` varchar(45) DEFAULT NULL,
-  `attempt_time` datetime DEFAULT NULL,
-  `status` varchar(20) DEFAULT 'failed'
+  `username` varchar(50) NOT NULL,
+  `ip_address` varchar(45) NOT NULL,
+  `attempt_time` datetime DEFAULT current_timestamp(),
+  `status` enum('failed','granted','removed') DEFAULT 'failed'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `login_attempts`
---
-
-INSERT INTO `login_attempts` (`id`, `username`, `ip_address`, `attempt_time`, `status`) VALUES
-(1, 'althia', '::1', '2025-02-24 17:45:10', 'failed'),
-(2, 'roren', '::1', '2025-02-24 17:48:13', 'failed'),
-(3, 'roren', '::1', '2025-02-24 17:48:19', 'failed'),
-(4, 'roren', '::1', '2025-02-24 17:48:23', 'failed');
 
 -- --------------------------------------------------------
 
@@ -160,7 +157,11 @@ INSERT INTO `users` (`id`, `username`, `password`) VALUES
 (23, '64363453', '$2y$10$Oyq2fFiHm.BAkvuJ3EupROrmYQjL7NMs1dijLiWoAOPYcbnwq4URu'),
 (24, '55553453', '$2y$10$/uZiy1O8NFFU90Qg/IqOX.Op5.LIDa5pq4CX8P3RcDtAPuJ.Go9rW'),
 (25, 'althia', '$2y$10$S/BJtuNa.qjU77dAiCrvjueMqalRrGDla2EDGFH64ahIxrH0zWx3y'),
-(26, 'roren', '$2y$10$Ne9nMr6H.qtQl/7E9NappeTQmbsTHGmpZYY274DxJTPf1Icpk17IW');
+(26, 'roren', '$2y$10$Ne9nMr6H.qtQl/7E9NappeTQmbsTHGmpZYY274DxJTPf1Icpk17IW'),
+(27, 'rory', '$2y$10$8NG.tZWGJPktq3D967yQ6OOXw6oJcihqTbm3Ch0o9dJxKp1kKCRLG'),
+(28, 'kiddy', '$2y$10$nCqBLbWN4RWtZDNZhD6IwO5oIdYYveJofqMrKt83x6R0zPr1icynS'),
+(29, 'maricel', '$2y$10$v8uH6W5IylcMKt9U/lZ0Eu3kfD49MlRSExP6vvVi6xkgXgwqz3g9e'),
+(30, 'wenj', '$2y$10$ZFrkWmfI5DsJC1Ss/F5qKerXG.qqSOmu19vmACCRzJbsSKOeCJAAW');
 
 --
 -- Indexes for dumped tables
@@ -208,7 +209,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `admin`
 --
 ALTER TABLE `admin`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `books`
@@ -220,19 +221,19 @@ ALTER TABLE `books`
 -- AUTO_INCREMENT for table `borrowed_books`
 --
 ALTER TABLE `borrowed_books`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `login_attempts`
 --
 ALTER TABLE `login_attempts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- Constraints for dumped tables
