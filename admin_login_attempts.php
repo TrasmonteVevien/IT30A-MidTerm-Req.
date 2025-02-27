@@ -1,4 +1,3 @@
-
 <?php
 include 'config.php';
 session_start();
@@ -9,14 +8,16 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 // Handle granting or removing access
-if (isset($_POST['action']) && isset($_POST['attempt_id'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['attempt_id'])) {
     $attempt_id = $_POST['attempt_id'];
     $action = ($_POST['action'] == 'grant') ? 'granted' : 'removed';
 
-    $pdo->prepare("UPDATE login_attempts SET status = ? WHERE id = ?")
-        ->execute([$action, $attempt_id]);
-
-    $_SESSION['success_message'] = "Login attempt ID $attempt_id has been updated to $action.";
+    $stmt = $pdo->prepare("UPDATE login_attempts SET status = ? WHERE id = ?");
+    if ($stmt->execute([$action, $attempt_id])) {
+        $_SESSION['success_message'] = "Login attempt ID $attempt_id has been updated to $action.";
+    } else {
+        $_SESSION['error_message'] = "Failed to update login attempt ID $attempt_id.";
+    }
 }
 
 // Fetch login attempts using LEFT JOIN for additional details
@@ -60,7 +61,7 @@ $attempts = $stmt->fetchAll();
         .back-btn {
             margin-top: 20px;
             padding: 10px 15px;
-            background-color: #0077bff;
+            background-color : #007bff;
             color: white;
             border: none;
             cursor: pointer;
@@ -69,8 +70,8 @@ $attempts = $stmt->fetchAll();
             display: inline-block;
             border-radius: 4px;
         }
-        .back-btn:hover { background-color : #007bff;
-        }
+        .back-btn:hover { background-color: #0056b3; }
+    </style>
 </head>
 <body>
     <h2>Login Attempts</h2>
@@ -78,6 +79,11 @@ $attempts = $stmt->fetchAll();
     <?php if (isset($_SESSION['success_message'])): ?>
         <p class="success"><?= htmlspecialchars($_SESSION['success_message']); ?></p>
         <?php unset($_SESSION['success_message']); ?>
+    <?php endif; ?>
+
+    <?php if (isset($_SESSION['error_message'])): ?>
+        <p class="failed"><?= htmlspecialchars($_SESSION['error_message']); ?></p>
+        <?php unset($_SESSION['error_message']); ?>
     <?php endif; ?>
 
     <table>

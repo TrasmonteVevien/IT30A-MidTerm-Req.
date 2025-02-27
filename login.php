@@ -1,12 +1,8 @@
-
-?> <?php
+<?php
 include 'config.php';
 session_start();
 
-// Set default values
-$username = isset($_SESSION['last_username']) ? $_SESSION['last_username'] : '';
-
-// Initialize failed login attempts and session timeout
+// Ensure session variables exist
 if (!isset($_SESSION['failed_attempts'])) {
     $_SESSION['failed_attempts'] = 0;
 }
@@ -16,17 +12,19 @@ if (!isset($_SESSION['last_login_time'])) {
 
 $max_attempts = 2; // Maximum login attempts before lockout
 $lockout_time = 60 * 5; // 5 minutes lockout period
+$error_message = "";
+$username = $_SESSION['last_username'] ?? ''; // Preserve last entered username
 
-// Check if user is locked out
+// Check if the user is locked out
 if (isset($_SESSION['lockout_time']) && time() < $_SESSION['lockout_time']) {
-    $remaining_time = ($_SESSION['lockout_time'] - time()) / 60;
-    $error_message = "Too many failed attempts. Try again in " . ceil($remaining_time) . " minutes.";
+    $remaining_time = ceil(($_SESSION['lockout_time'] - time()) / 60);
+    $error_message = "Too many failed attempts. Try again in $remaining_time minutes.";
 } elseif ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+    $username = trim($_POST['username']);
+    $password = trim($_POST['password']);
     $ip_address = $_SERVER['REMOTE_ADDR'];
 
-    // Prepare the SQL statement to check user credentials
+    // Check if the username exists
     $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
     $stmt->execute([$username]);
     $user = $stmt->fetch();
@@ -36,7 +34,7 @@ if (isset($_SESSION['lockout_time']) && time() < $_SESSION['lockout_time']) {
         $_SESSION['failed_attempts'] = 0;
         unset($_SESSION['lockout_time']);
 
-        // Set session user id and store last successful username
+        // Store user session details
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['last_username'] = $username;
         $_SESSION['last_login_time'] = time();
@@ -50,7 +48,7 @@ if (isset($_SESSION['lockout_time']) && time() < $_SESSION['lockout_time']) {
         $stmt = $pdo->prepare("INSERT INTO login_attempts (username, ip_address, attempt_time) VALUES (?, ?, NOW())");
         $stmt->execute([$username, $ip_address]);
 
-        // Incorrect credentials - increment failed attempts
+        // Increment failed attempts
         $_SESSION['failed_attempts']++;
 
         if ($_SESSION['failed_attempts'] >= $max_attempts) {
@@ -64,6 +62,7 @@ if (isset($_SESSION['lockout_time']) && time() < $_SESSION['lockout_time']) {
     // Clear username input after failed login
     $username = '';
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -138,7 +137,7 @@ if (isset($_SESSION['lockout_time']) && time() < $_SESSION['lockout_time']) {
 <body>
     <div class="login-container">
         <h2>Login</h2>
-        <?php if (isset($error_message)) : ?>
+        <?php if (!empty($error_message)) : ?>
             <div class="error-message"><?= htmlspecialchars($error_message); ?></div>
         <?php endif; ?>
         <?php if (isset($_SESSION['success_message'])) : ?>
@@ -146,7 +145,7 @@ if (isset($_SESSION['lockout_time']) && time() < $_SESSION['lockout_time']) {
             <?php unset($_SESSION['success_message']); ?>
         <?php endif; ?>
         <form method="post">
-            <input type="text" name="username" placeholder="Username" value="<?php echo htmlspecialchars($username); ?>" required><br>
+            <input type="text" name="username" placeholder="Username" value="<?= htmlspecialchars($username); ?>" required><br>
             <input type="password" name="password" placeholder="Password" required><br>
             <button type="submit">Login</button>
         </form>
@@ -156,7 +155,3 @@ if (isset($_SESSION['lockout_time']) && time() < $_SESSION['lockout_time']) {
     </div>
 </body>
 </html>
-
-
-
-
