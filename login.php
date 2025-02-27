@@ -2,63 +2,58 @@
 include 'config.php';
 session_start();
 
-$max_attempts = 2; // Max login attempts
-$lockout_time = 3 * 60; // 3 minutes in seconds
+$max_attempts = 2; // Maximum allowed attempts
+$lockout_time = 3 * 60; // Lockout duration in seconds
 $now = time();
 
-// Initialize failed attempts if not set
-if (!isset($_SESSION['failed_attempts'])) {
-    $_SESSION['failed_attempts'] = 0;
-}
-
-// Check if user is locked out
-if (isset($_SESSION['locked_until']) && $_SESSION['locked_until'] > $now) {
-    $remaining_time = $_SESSION['locked_until'] - $now;
-    $error_message = "Too many failed attempts. Try again in $remaining_time seconds.";
-}
-
-// Check if already logged in
-if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true) {
-    header("Location: admin_dashboard.php");
-    exit();
-}
-
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($error_message)) {
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
 
-    // Fetch admin credentials
-    $stmt = $pdo->prepare("SELECT * FROM admin WHERE username = ?");
+    // Fetch user data including failed attempts and lockout time
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
     $stmt->execute([$username]);
-    $admin = $stmt->fetch();
+    $user = $stmt->fetch();
 
-    if ($admin && password_verify($password, $admin['password'])) {
-        if ($admin['role'] !== 'admin') {
-            $error_message = "You do not have permission to access this area.";
+    if ($user) {
+        // Check if the user is locked out
+        if ($user['locked_until'] && $user['locked_until'] > $now) {
+            $remaining_time = $user['locked_until'] - $now;
+            $error_message = "Too many failed attempts. Try again in $remaining_time seconds.";
         } else {
-            // Successful login
-            session_regenerate_id(true);
-            $_SESSION['admin_logged_in'] = true;
-            $_SESSION['admin_id'] = $admin['id'];
-            $_SESSION['admin_username'] = $admin['username'];
+            // Verify password
+            if (password_verify($password, $user['password'])) {
+                // Successful login
+                session_regenerate_id(true);
+                $_SESSION['user_logged_in'] = true;
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['user_username'] = $user['username'];
 
-            // Reset failed attempts
-            $_SESSION['failed_attempts'] = 0;
-            unset($_SESSION['locked_until']);
+                // Reset failed attempts and unlock user
+                $stmt = $pdo->prepare("UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ?");
+                $stmt->execute([$user['id']]);
 
-            header("Location: admin_dashboard.php");
-            exit();
+                header("Location: user_dashboard.php");
+                exit();
+            } else {
+                // Increment failed attempts
+                $failed_attempts = $user['failed_attempts'] + 1;
+
+                if ($failed_attempts >= $max_attempts) {
+                    $lock_until = $now + $lockout_time;
+                    $stmt = $pdo->prepare("UPDATE users SET failed_attempts = ?, locked_until = ? WHERE id = ?");
+                    $stmt->execute([$failed_attempts, $lock_until, $user['id']]);
+                    $error_message = "Too many failed attempts. Locked out for 3 minutes.";
+                } else {
+                    $stmt = $pdo->prepare("UPDATE users SET failed_attempts = ? WHERE id = ?");
+                    $stmt->execute([$failed_attempts, $user['id']]);
+                    $remaining_attempts = $max_attempts - $failed_attempts;
+                    $error_message = "Invalid username or password. You have $remaining_attempts attempt(s) remaining.";
+                }
+            }
         }
     } else {
-        $_SESSION['failed_attempts']++;
-
-        if ($_SESSION['failed_attempts'] >= $max_attempts) {
-            $_SESSION['locked_until'] = $now + $lockout_time;
-            $error_message = "Too many failed attempts. Locked out for 3 minutes.";
-        } else {
-            $remaining_attempts = $max_attempts - $_SESSION['failed_attempts'];
-            $error_message = "Invalid username or password. You have $remaining_attempts attempt(s) remaining.";
-        }
+        $error_message = "Invalid username or password.";
     }
 }
 ?>
@@ -68,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($error_message)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login</title>
+    <title>User Login</title>
     <style>
         body {
             background-color: #e9ecef;
@@ -124,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($error_message)) {
 </head>
 <body>
     <div class="login-container">
-        <h2>Admin Login</h2>
+        <h2>User Login</h2>
         <?php if (isset($error_message)) : ?>
             <div class="error-message"><?= htmlspecialchars($error_message); ?></div>
         <?php endif; ?>
@@ -133,9 +128,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($error_message)) {
             <input type="password" name="password" placeholder="Password" required><br>
             <button type="submit">Login</button>
         </form>
-        <?php if ($_SESSION['failed_attempts'] > 0 && $_SESSION['failed_attempts'] < $max_attempts): ?>
-            <div class="warning">Warning: <?= $max_attempts - $_SESSION['failed_attempts']; ?> attempt(s) remaining.</div>
-        <?php endif; ?>
     </div>
 </body>
 </html>

@@ -1,7 +1,4 @@
 
-php
-Copy
-Edit
 <?php
 include 'config.php';
 session_start();
@@ -63,7 +60,7 @@ $attempts = $stmt->fetchAll();
         .back-btn {
             margin-top: 20px;
             padding: 10px 15px;
-            background-color: #6c757d;
+            background-color: #0077bff;
             color: white;
             border: none;
             cursor: pointer;
